@@ -7,7 +7,7 @@ COMS W4701 Artificial Intelligence - Programming Homework 2
 An AI player for Othello. This is the template file that you need to  
 complete and submit. 
 
-@author: YOUR NAME AND UNI 
+@author: NAMAN JAIN AND nj2387
 """
 
 import random
@@ -17,32 +17,65 @@ import time
 # You can use the functions in othello_shared to write your AI 
 from othello_shared import find_lines, get_possible_moves, get_score, play_move
 
+
 def compute_utility(board, color):
     """
     Return the utility of the given board state
     (represented as a tuple of tuples) from the perspective
     of the player "color" (1 for dark, 2 for light)
     """
+    p1, p2 = get_score(board)
+    if color == 1:
+        return p1 - p2
+    if color == 2:
+        return p2 - p1
     return 0
 
 
 ############ MINIMAX ###############################
 
 def minimax_min_node(board, color):
-    return None
+    if not get_possible_moves(board, color):
+        return compute_utility(board, color)
+    moves = get_possible_moves(board, color)
+    best_score = float('inf')
+    for move in moves:
+        next_move = play_move(board, color, move[0], move[1])
+        score = minimax_max_node(next_move, color)
+        if score < best_score:
+            best_score = score
+    return best_score
 
 
 def minimax_max_node(board, color):
-    return None 
+    if not get_possible_moves(board, color):
+        return compute_utility(board, color)
+    moves = get_possible_moves(board, color)
+    best_score = float('-inf')
+    for move in moves:
+        next_move = play_move(board, color, move[0], move[1])
+        score = minimax_min_node(next_move, color)
+        if score > best_score:
+            best_score = score
+    return best_score
 
     
 def select_move_minimax(board, color):
     """
     Given a board and a player color, decide on a move. 
     The return value is a tuple of integers (i,j), where
-    i is the column and j is the row on the board.  
+    i is the column and j is the row on the board.
     """
-    return 0,0 
+    moves = get_possible_moves(board, color)
+    best_move = moves[0]
+    best_score = float('-inf')
+    for move in moves:
+        next_move = play_move(board, color, move[0], move[1])
+        score = minimax_min_node(next_move, color)
+        if score > best_score:
+            best_move = move
+            best_score = score
+    return best_move
 
 
 ############ ALPHA-BETA PRUNING #####################
