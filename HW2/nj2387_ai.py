@@ -14,8 +14,13 @@ import random
 import sys
 import time
 
+from heapq import heappush
+from heapq import heappop
+
 # You can use the functions in othello_shared to write your AI 
 from othello_shared import find_lines, get_possible_moves, get_score, play_move
+
+states_minimax_values = {}  # For storing the minimax value of a board state.
 
 
 def compute_utility(board, color):
@@ -35,9 +40,9 @@ def compute_utility(board, color):
 ############ MINIMAX ###############################
 
 def minimax_min_node(board, color):
-    if not get_possible_moves(board, color):
-        return compute_utility(board, color)
     moves = get_possible_moves(board, color)
+    if not moves:
+        return compute_utility(board, color)
     best_score = float('inf')
     for move in moves:
         next_move = play_move(board, color, move[0], move[1])
@@ -48,9 +53,9 @@ def minimax_min_node(board, color):
 
 
 def minimax_max_node(board, color):
-    if not get_possible_moves(board, color):
-        return compute_utility(board, color)
     moves = get_possible_moves(board, color)
+    if not moves:
+        return compute_utility(board, color)
     best_score = float('-inf')
     for move in moves:
         next_move = play_move(board, color, move[0], move[1])
@@ -67,11 +72,17 @@ def select_move_minimax(board, color):
     i is the column and j is the row on the board.
     """
     moves = get_possible_moves(board, color)
+    if not moves:
+        return None, None
     best_move = moves[0]
     best_score = float('-inf')
     for move in moves:
         next_move = play_move(board, color, move[0], move[1])
-        score = minimax_min_node(next_move, color)
+        if next_move in states_minimax_values:
+            score = states_minimax_values[next_move]
+        else:
+            score = minimax_min_node(next_move, color)
+            states_minimax_values[next_move] = score
         if score > best_score:
             best_move = move
             best_score = score
@@ -80,18 +91,95 @@ def select_move_minimax(board, color):
 
 ############ ALPHA-BETA PRUNING #####################
 
-#alphabeta_min_node(board, color, alpha, beta, level, limit)
-def alphabeta_min_node(board, color, alpha, beta): 
-    return None
+def alphabeta_min_node(board, color, alpha, beta, level, limit):
+    moves = get_possible_moves(board, color)
+    if not moves or level > limit:
+        return compute_utility(board, color)
+    best_score = float('inf')
+    for move in moves:
+        next_move = play_move(board, color, move[0], move[1])
+        best_score = min(best_score, alphabeta_max_node(next_move, color, alpha, beta, level + 1, limit))
+        if best_score <= alpha:
+            return best_score
+        beta = min(beta, best_score)
+    return best_score
 
 
-#alphabeta_max_node(board, color, alpha, beta, level, limit)
-def alphabeta_max_node(board, color, alpha, beta):
-    return None
+# def alphabeta_min_node(board, color, alpha, beta):
+#     moves = get_possible_moves(board, color)
+#     if not moves:
+#         return compute_utility(board, color)
+#     best_score = float('inf')
+#     for move in moves:
+#         next_move = play_move(board, color, move[0], move[1])
+#         best_score = min(best_score, alphabeta_max_node(next_move, color, alpha, beta))
+#         if best_score <= alpha:
+#             return best_score
+#         beta = min(beta, best_score)
+#     return best_score
 
 
-def select_move_alphabeta(board, color): 
-    return 0,0 
+def alphabeta_max_node(board, color, alpha, beta, level, limit):
+    moves = get_possible_moves(board, color)
+    if not moves or level > limit:
+        return compute_utility(board, color)
+    best_score = float('-inf')
+    for move in moves:
+        next_move = play_move(board, color, move[0], move[1])
+        best_score = max(best_score, alphabeta_min_node(next_move, color, alpha, beta, level + 1, limit))
+        if best_score >= beta:
+            return best_score
+        alpha = max(alpha, best_score)
+    return best_score
+
+
+# def alphabeta_max_node(board, color, alpha, beta):
+#     moves = get_possible_moves(board, color)
+#     if not moves:
+#         return compute_utility(board, color)
+#     best_score = float('-inf')
+#     for move in moves:
+#         next_move = play_move(board, color, move[0], move[1])
+#         best_score = max(best_score, alphabeta_min_node(next_move, color, alpha, beta))
+#         if best_score >= beta:
+#             return best_score
+#         alpha = max(alpha, best_score)
+#     return best_score
+
+
+def select_move_alphabeta(board, color, limit):
+    moves = get_possible_moves(board, color)
+    if not moves:
+        return None, None
+    moves = sorted_moves(board, color, moves)
+    best_move = moves[0]
+    best_score = float('-inf')
+    alpha = float('-inf')
+    beta = float('inf')
+    for move in moves:
+        level = 0
+        next_move = move[2]
+        if next_move in states_minimax_values:
+            score = states_minimax_values[next_move]
+        else:
+            score = alphabeta_min_node(next_move, color, alpha, beta, level, limit)
+            states_minimax_values[next_move] = score
+        if score > best_score:
+            best_move = move[1]
+            best_score = score
+    return best_move
+
+
+def sorted_moves(board, color, moves):
+    """
+    Return the list of moves sorted in descending order of their utility value.
+    """
+    moves_with_utility_value = []
+    for move in moves:
+        new_board_state = play_move(board, color, move[0], move[1])
+        utility_value = compute_utility(new_board_state, color)
+        moves_with_utility_value.append(tuple([utility_value, move, new_board_state]))
+    return sorted(moves_with_utility_value, key=lambda x: x[0], reverse=True)
 
 
 ####################################################
@@ -102,7 +190,7 @@ def run_ai():
     Then it repeatedly receives the current score and current board state
     until the game is over. 
     """
-    print("Minimax AI") # First line is the name of this AI  
+    print("nj2387_AI") # First line is the name of this AI
     color = int(input()) # Then we read the color: 1 for dark (goes first), 
                          # 2 for light. 
 
@@ -115,7 +203,7 @@ def run_ai():
         dark_score = int(dark_score_s)
         light_score = int(light_score_s)
 
-        if status == "FINAL": # Game is over. 
+        if status == "FINAL":  # Game is over.
             print 
         else: 
             board = eval(input()) # Read in the input and turn it into a Python
@@ -126,8 +214,9 @@ def run_ai():
                                   # 2 : light disk (player 2)
                     
             # Select the move and send it to the manager 
-            movei, movej = select_move_minimax(board, color)
-            #movei, movej = select_move_alphabeta(board, color)
+            # movei, movej = select_move_minimax(board, color)
+            # movei, movej = select_move_alphabeta(board, color)
+            movei, movej = select_move_alphabeta(board, color, limit=3)
             print("{} {}".format(movei, movej)) 
 
 
