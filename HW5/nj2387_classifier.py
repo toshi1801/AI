@@ -36,7 +36,12 @@ class NbClassifier(object):
     Implement this for extra credit.
     """
     def remove_stopwords(self, stopword_file):
-        self.attribute_types.difference(set())
+        stopwords = set()
+        with open(stopword_file) as file:
+            lines = file.readlines()
+            for line in lines:
+                stopwords.add(line.strip())
+        self.attribute_types.difference(stopwords)
 
     """
     Given a training datafile, add all features that appear at least m times to self.attribute_types
