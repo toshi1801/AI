@@ -6,17 +6,17 @@ from collections import defaultdict
 
 
 class NbClassifier(object):
-
     """
     A Naive Bayes classifier object has three parameters, all of which are populated during initialization:
     - a set of all possible attribute types
     - a dictionary of the probabilities P(Y), labels as keys and probabilities as values
     - a dictionary of the probabilities P(F|Y), with (feature, label) pairs as keys and probabilities as values
     """
+
     def __init__(self, training_filename, stopword_file):
         self.attribute_types = set()
-        self.label_prior = {}    
-        self.word_given_label = {}   
+        self.label_prior = {}
+        self.word_given_label = {}
 
         self.collect_attribute_types(training_filename)
         if stopword_file is not None:
@@ -27,25 +27,60 @@ class NbClassifier(object):
     A helper function to transform a string into a list of word strings.
     You should not need to modify this unless you want to improve your classifier in the extra credit portion.
     """
+
     def extract_words(self, text):
         no_punct_text = "".join([x for x in text.lower() if x not in string.punctuation])
-        return [word for word in no_punct_text.split()]
+        words = [word for word in no_punct_text.split()]
+
+        # Replace with constant 'num' if string is a number.
+        for index, word in enumerate(words):
+            if self.is_number(word):
+                words[index] = 'num'
+
+        return words
+
+    def is_number(self, text):
+        try:
+            float(text)
+            return True
+        except ValueError:
+            return False
 
     """
     Given a stopword_file, read in all stop words and remove them from self.attribute_types
     Implement this for extra credit.
     """
+
     def remove_stopwords(self, stopword_file):
         stopwords = set()
         with open(stopword_file) as file:
             lines = file.readlines()
             for line in lines:
                 stopwords.add(line.strip())
-        self.attribute_types.difference(stopwords)
+        self.attribute_types.difference(stopwords.union(self.additional_stop_words()))
+
+    def additional_stop_words(self):
+        return {'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're", "you've", "you'll",
+                "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', "she's",
+                'her', 'hers', 'herself', 'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs',
+                'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am',
+                'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does',
+                'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while',
+                'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during',
+                'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over',
+                'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all',
+                'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+                'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', "don't",
+                'should', "should've", 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', "aren't",
+                'couldn', "couldn't", 'didn', "didn't", 'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't",
+                'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't", 'mustn', "mustn't", 'needn',
+                "needn't", 'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won',
+                "won't", 'wouldn', "wouldn't"}
 
     """
     Given a training datafile, add all features that appear at least m times to self.attribute_types
     """
+
     def collect_attribute_types(self, training_filename, m=1):
         extracted_features = defaultdict(int)
 
@@ -65,6 +100,7 @@ class NbClassifier(object):
     Given a training datafile, estimate the model probability parameters P(Y) and P(F|Y).
     Estimates should be smoothed using the smoothing parameter k.
     """
+
     def train(self, training_filename, k=0.1):
 
         word_given_label_count = defaultdict(int)
@@ -102,6 +138,7 @@ class NbClassifier(object):
     The return value should be a dictionary with labels as keys and relative beliefs as values.
     The probabilities need not be normalized and may be expressed as log probabilities. 
     """
+
     def predict(self, text):
 
         predictions = {}
@@ -119,6 +156,7 @@ class NbClassifier(object):
     """
     Given a datafile, classify all lines using predict() and return the accuracy as the fraction classified correctly.
     """
+
     def evaluate(self, test_filename):
         correct_predictions = 0
 
